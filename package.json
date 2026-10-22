@@ -1,0 +1,11 @@
+{
+  "name": "opencode-unrestricted",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test plugins/unrestricted-boost.test.ts"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.3"
+  }
+}
