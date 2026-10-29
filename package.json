@@ -1,0 +1,15 @@
+{
+  "name": "opencode-unrestricted",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test tests/unrestricted-boost.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
