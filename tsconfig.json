@@ -8,5 +8,5 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["plugins/**/*.ts"]
+  "include": ["plugins/**/*.ts", "v1/plugin/**/*.ts"]
 }
