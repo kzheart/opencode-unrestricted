@@ -39,7 +39,7 @@ opencode-unrestricted/
 | 插件目录（全局） | `plugin/` | `plugins/` |
 | 插件入口 | `export const X: Plugin = async (input) => ({ ...hooks })` | `export default Plugin.define({ id, setup(ctx) })` |
 | 插件包 | `@opencode-ai/plugin`（类型导入） | `@opencode/plugin`（**运行时依赖**） |
-| 系统提示注入 | `experimental.chat.system.transform` | `ctx.session.hook("context", e => e.system.push(...))` |
+| 系统提示注入 | `experimental.chat.system.transform` | `ctx.session.hook("context", e => e.system.unshift(...))` |
 | 消息改写 | `experimental.chat.messages.transform`（`info.role` / `parts`） | 同一个 `context` hook（`message.role` / `message.content`） |
 | agent 门控 | 从 `input` 猜 agent 名 | hook 事件原生带只读 `event.agent` |
 | 配置字段 | `agent`、`permission` | `agents`、`permissions: [{ action, resource, effect }]` |
@@ -165,7 +165,9 @@ Ferry 把 Claude Code、Codex、OpenCode、Cursor 等 agent 的会话汇进同�
 ## 致谢
 
 - 提示词参考并延展自 [MDX-Tom/gpt-5.6-instruct](https://github.com/MDX-Tom/gpt-5.6-instruct)（针对 gpt-5.6 系列的 Codex 破甲提示词与测试包，其自身参考自 [yynxxxxx/Codex-5.5-codex-instruct-5.5](https://github.com/yynxxxxx/Codex-5.5-codex-instruct-5.5)）。两者共享「研究/沙箱语境先行 + 显式抑制拒答 + 工具优先 + 按请求保真度交付」的核心机制，本仓库将其迁移到 OpenCode 平台并收窄为安全研究向。
-- V2 迁移依据 OpenCode V2 文档：`/docs/migrate-v1`、`/docs/build/plugins`、`/docs/build/plugins/migrate-v1`、`/docs/agents`。
+- V2 迁移依据 OpenCode V2 文档：`/docs/migrate-v1`、`/docs/build/plugins`、`/docs/build/plugins/migrate-v1`、`/docs/agents`；
+  并对照 `@opencode/plugin` 运行时类型（`SessionContext` / `SessionCompaction` / `Message` / `SystemPart`）校验。
+- V2 迁移基于 [Binaryify 的 PR #5](https://github.com/kzheart/opencode-unrestricted/pull/5) 验证完善；API 用法已按官方 V2 文档与 `@opencode/plugin` 类型核对通过。
 - 感谢 [LINUX DO](https://linux.do) 社区
 
 ## License
