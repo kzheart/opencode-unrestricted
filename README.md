@@ -60,8 +60,10 @@ opencode-unrestricted/
 | 插件包 | `@opencode-ai/plugin`（**类型导入**，运行时擦除） | `@opencode/plugin`（**运行时依赖**） |
 | 系统提示注入 | `experimental.chat.system.transform` | `ctx.session.hook("context", …)`（+ `compaction`） |
 | 消息改写 | `experimental.chat.messages.transform`（`info.role` / `parts`） | 同一 `context` hook（`message.role` / `message.content`） |
-| agent 门控 | 从 `input` 猜 agent 名 + system lab 标记兜底 | hook 事件原生 `event.agent` |
+| agent 门控 | system：`[MODE: UNRESTRICTED]`+`[SECURITY_RESEARCH_EXECUTOR]` 稳定标记；messages：`info.agent === "unrestricted"`（PluginInput **无** agent） | hook 事件原生 `event.agent` |
 | 配置字段 | `agent`、`permission` | `agents`、`permissions: [{ action, resource, effect }]` |
+
+> **切换 V1 ↔ V2 时，`opencode.json` 字段必须跟着改**：V1 用单数 `agent` / `permission` / `plugin`；V2 用复数 `agents` / `permissions` / `plugins`，并配置 `default_agent`。不要把 V2 的复数字段丢进 V1 配置，反之亦然（见各自的 `opencode.json.example`）。
 
 ## 安装 · OpenCode V2（`opencode --version` ≥ 2）
 
