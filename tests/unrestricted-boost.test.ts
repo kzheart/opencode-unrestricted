@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import plugin from "./unrestricted-boost"
+import plugin from "../plugins/unrestricted-boost"
 
 type Hook = (event: any) => void
 

@@ -14,10 +14,12 @@ opencode-unrestricted/
 ├── commands/
 │   └── unrestricted.md        # /unrestricted 斜杠命令
 ├── plugins/
-│   ├── unrestricted-boost.ts  # V2 插件：注入研究语境 + 改写命中轮次
+│   └── unrestricted-boost.ts  # V2 插件：注入研究语境 + 改写命中轮次（仅正式插件，不含测试）
+├── tests/
 │   └── unrestricted-boost.test.ts
 ├── opencode.json.example      # 脱敏后的 V2 原生配置示例
 ├── package.json               # 声明插件运行时依赖 @opencode/plugin
+├── tsconfig.json              # 可复现的 tsc --noEmit（skipLibCheck）
 └── README.md
 ```
 
@@ -47,12 +49,21 @@ opencode-unrestricted/
 
 本仓库不复用 V1 文件，安装时按 V2 布局放置即可；`< 2.0` 的 OpenCode 不适用。
 
+**从 V1 升级时请先清理旧目录**：OpenCode 会同时扫描单数与复数目录（`plugin`/`plugins`、`agent`/`agents`、`command`/`commands`）。若旧的 `~/.config/opencode/plugin/`、`agent/`、`command/` 还在，V1 插件会与新的 V2 实现并存甚至抢先加载。升级前删除它们：
+
+```bash
+rm -rf ~/.config/opencode/plugin ~/.config/opencode/agent ~/.config/opencode/command
+# 若曾把本仓库的测试文件拷进过 plugins/，也一并删掉：
+rm -f ~/.config/opencode/plugins/*.test.ts
+```
+
 ## 安装
 
 ### 1. 复制文件到 OpenCode 配置目录
 
 ```bash
 cp -R agents commands plugins ~/.config/opencode/
+# plugins/ 里只有正式插件 unrestricted-boost.ts；测试在仓库 tests/，不会被拷进去
 ```
 
 ### 2. 安装插件运行时依赖
@@ -121,10 +132,11 @@ grep "loading plugin" ~/.local/share/opencode/log/opencode.log | grep unrestrict
 
 词表分三组：高置信度中文/英文短语、技术名与工具名、注册自动化上下文；泛词（注册/分析/测试）单独出现不触发，避免误伤正常开发请求。
 
-跑测试：
+跑测试与类型检查：
 
 ```bash
-bun test plugins/unrestricted-boost.test.ts
+bun test                    # 或：bun test tests/unrestricted-boost.test.ts
+bun run typecheck           # tsc --noEmit（tsconfig.json，含 skipLibCheck）
 ```
 
 ## 使用
