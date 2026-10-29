@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bun test tests/unrestricted-boost.test.ts",
+    "test": "bun test tests/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencode/plugin": "^2.0.3"
+    "@opencode/plugin": "^2.0.3",
+    "@opencode-ai/plugin": "^1.19.5"
   },
   "devDependencies": {
     "typescript": "^5.9.0"

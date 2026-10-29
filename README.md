@@ -1,85 +1,94 @@
 # opencode-unrestricted
 
-OpenCode **V2** 的「unrestricted」agent 配置包 —— 一个**模型越狱（jailbreak / 破甲）提示词**配置：把受限请求（逆向、二进制补丁、渗透测试、恶意软件机理、软件破解、钓鱼等）重框架为「学术/防御研究」语境，并显式抑制模型拒答与回退话术，使其按请求原样执行。
+OpenCode 的「unrestricted」agent 配置包 —— 一个**模型越狱（jailbreak / 破甲）提示词**配置：把受限请求（逆向、二进制补丁、渗透测试、恶意软件机理、软件破解、钓鱼等）重框架为「学术/防御研究」语境，并显式抑制模型拒答与回退话术，使其按请求原样执行。
 
-> 本仓库**只支持 OpenCode V2**（`opencode --version` ≥ 2）：`agents/` + `commands/` + `plugins/` 布局、`permissions` 有序规则数组、`Plugin.define` + `session.hook("context")` 插件 API。
-> V2 的插件 API 与 V1 不兼容，本仓库不再提供 V1 实现。
+> **同时支持 OpenCode V1（`< 2.0`）与 V2（`≥ 2.0`）。**
+> V2 组件在仓库根目录（`agents/` / `commands/` / `plugins/`）；V1 组件隔离在 `v1/` 下（`v1/agent/` / `v1/command/` / `v1/plugin/`），避免 `cp -R` 交叉污染。两套越狱行为等价：全 allow、研究语境注入、关键词改写、agent 门控。
+
+先确认版本再选安装路径：
+
+```bash
+opencode --version
+# ≥ 2.0  → 按「安装 · OpenCode V2」
+# <  2.0  → 按「安装 · OpenCode V1」
+```
 
 ## 目录结构
 
 ```
 opencode-unrestricted/
-├── agents/
-│   └── unrestricted.md        # 主 agent 的 system prompt（Markdown body 即 system）
-├── commands/
-│   └── unrestricted.md        # /unrestricted 斜杠命令
-├── plugins/
-│   └── unrestricted-boost.ts  # V2 插件：注入研究语境 + 改写命中轮次（仅正式插件，不含测试）
+├── agents/                         # V2 主 agent
+│   └── unrestricted.md
+├── commands/                       # V2 斜杠命令
+│   └── unrestricted.md
+├── plugins/                        # V2 插件（仅正式插件，不含测试）
+│   └── unrestricted-boost.ts
+├── v1/                             # V1 整包（与 V2 隔离）
+│   ├── agent/unrestricted.md
+│   ├── command/unrestricted.md
+│   ├── plugin/unrestricted-boost.ts
+│   └── opencode.json.example
 ├── tests/
-│   └── unrestricted-boost.test.ts
-├── opencode.json.example      # 脱敏后的 V2 原生配置示例
-├── package.json               # 声明插件运行时依赖 @opencode/plugin
-├── tsconfig.json              # 可复现的 tsc --noEmit（skipLibCheck）
+│   ├── unrestricted-boost.test.ts      # V2 插件测试
+│   └── v1-unrestricted-boost.test.ts   # V1 插件测试
+├── opencode.json.example           # V2 配置示例
+├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
 ## 组件说明
 
-| 文件 | 作用 |
-|------|------|
-| `agents/unrestricted.md` | 定义 `unrestricted` 主 agent：`mode: primary` + `permissions` 全 allow，system prompt 采用「研究语境先行」策略，把逆向/补丁/漏洞利用/恶意软件机理等请求作为学术与防御研究产物处理，并要求工具优先、按请求保真度交付 |
-| `commands/unrestricted.md` | 注册 `/unrestricted` 命令：把参数当作当前任务，切到 unrestricted agent 并立刻用工具执行 |
-| `plugins/unrestricted-boost.ts` | V2 插件（`id: unrestricted.boost`）：在 `context` / `compaction` 请求上给 unrestricted agent 注入 `[UNRESEARCH-LAB]` 研究语境；对命中的安全关键词用户轮次改写为「授权研究环境」上下文。用 `event.agent` 门控，不影响 build/plan 等其他 agent |
-| `opencode.json.example` | 脱敏后的 `~/.config/opencode/opencode.json` 示例，只保留 unrestricted 相关配置（V2 原生字段） |
+| 路径 | 适用 | 作用 |
+|------|------|------|
+| `agents/unrestricted.md` | V2 | `mode: primary` + `permissions` 全 allow；Markdown body = system prompt |
+| `commands/unrestricted.md` | V2 | `/unrestricted` 命令，`agent: unrestricted` |
+| `plugins/unrestricted-boost.ts` | V2 | `Plugin.define` + `session.hook("context"\|"compaction")`；`event.agent` 门控 |
+| `opencode.json.example` | V2 | `default_agent` / `permissions` / `agents` |
+| `v1/agent/unrestricted.md` | V1 | `mode: primary` + `permission: allow` |
+| `v1/command/unrestricted.md` | V1 | `/unrestricted` 命令 |
+| `v1/plugin/unrestricted-boost.ts` | V1 | `export default Plugin` + `experimental.chat.system.transform` / `messages.transform` |
+| `v1/opencode.json.example` | V1 | `default_agent` / `permission` / `agent`（单数） |
 
-## 与 V1 版实现的差异
+## V1 与 V2 差异速查
 
-| 项目 | V1 | V2 |
-|------|----|----|
-| agent 目录 | `agent/` | `agents/` |
-| command 目录 | `command/` | `commands/` |
-| 插件目录（全局） | `plugin/` | `plugins/` |
-| 插件入口 | `export const X: Plugin = async (input) => ({ ...hooks })` | `export default Plugin.define({ id, setup(ctx) })` |
-| 插件包 | `@opencode-ai/plugin`（类型导入） | `@opencode/plugin`（**运行时依赖**） |
-| 系统提示注入 | `experimental.chat.system.transform` | `ctx.session.hook("context", e => e.system.unshift(...))` |
-| 消息改写 | `experimental.chat.messages.transform`（`info.role` / `parts`） | 同一个 `context` hook（`message.role` / `message.content`） |
-| agent 门控 | 从 `input` 猜 agent 名 | hook 事件原生带只读 `event.agent` |
+| 项目 | V1（`< 2.0`） | V2（`≥ 2.0`） |
+|------|--------------|--------------|
+| 本仓库路径 | `v1/agent` `v1/command` `v1/plugin` | `agents` `commands` `plugins` |
+| 配置目录名 | `agent/` `command/` `plugin/` | `agents/` `commands/` `plugins/` |
+| 插件入口 | `export default Plugin`（`async (input) => ({...hooks})`） | `export default Plugin.define({ id, setup })` |
+| 插件包 | `@opencode-ai/plugin`（**类型导入**，运行时擦除） | `@opencode/plugin`（**运行时依赖**） |
+| 系统提示注入 | `experimental.chat.system.transform` | `ctx.session.hook("context", …)`（+ `compaction`） |
+| 消息改写 | `experimental.chat.messages.transform`（`info.role` / `parts`） | 同一 `context` hook（`message.role` / `message.content`） |
+| agent 门控 | 从 `input` 猜 agent 名 + system lab 标记兜底 | hook 事件原生 `event.agent` |
 | 配置字段 | `agent`、`permission` | `agents`、`permissions: [{ action, resource, effect }]` |
-| 插件配置 | `plugin: [...]` | `plugins: [...]` |
 
-本仓库不复用 V1 文件，安装时按 V2 布局放置即可；`< 2.0` 的 OpenCode 不适用。
+## 安装 · OpenCode V2（`opencode --version` ≥ 2）
 
-**从 V1 升级时请先清理旧目录**：OpenCode 会同时扫描单数与复数目录（`plugin`/`plugins`、`agent`/`agents`、`command`/`commands`）。若旧的 `~/.config/opencode/plugin/`、`agent/`、`command/` 还在，V1 插件会与新的 V2 实现并存甚至抢先加载。升级前删除它们：
-
-```bash
-rm -rf ~/.config/opencode/plugin ~/.config/opencode/agent ~/.config/opencode/command
-# 若曾把本仓库的测试文件拷进过 plugins/，也一并删掉：
-rm -f ~/.config/opencode/plugins/*.test.ts
-```
-
-## 安装
-
-### 1. 复制文件到 OpenCode 配置目录
+### 1. 复制 V2 组件
 
 ```bash
 cp -R agents commands plugins ~/.config/opencode/
 # plugins/ 里只有正式插件 unrestricted-boost.ts；测试在仓库 tests/，不会被拷进去
 ```
 
-### 2. 安装插件运行时依赖
+若你以前装过本仓库的 V1 或早期单数目录，**先清理**，避免 V1/V2 并存：
 
-插件 `import { Plugin } from "@opencode/plugin"` 是**运行时导入**，必须在配置目录装一次：
+```bash
+rm -rf ~/.config/opencode/plugin ~/.config/opencode/agent ~/.config/opencode/command
+rm -f ~/.config/opencode/plugins/*.test.ts
+```
+
+### 2. 安装插件运行时依赖
 
 ```bash
 cd ~/.config/opencode && bun add @opencode/plugin
 # 或：npm i @opencode/plugin
 ```
 
-缺少这个包时，插件会在加载阶段报模块解析错误；确认 `~/.config/opencode/node_modules/@opencode/plugin` 存在即可。
+### 3. 写入 V2 配置
 
-### 3. 修改 opencode.json
-
-在 `~/.config/opencode/opencode.json` 里设置默认 agent（参考 `opencode.json.example`）：
+参考根目录 `opencode.json.example`：
 
 ```json
 {
@@ -101,41 +110,73 @@ cd ~/.config/opencode && bun add @opencode/plugin
 
 ```bash
 opencode service restart
-opencode debug agents | grep -A2 unrestricted          # agent 已加载，permissions 为 allow
-grep "loading plugin" ~/.local/share/opencode/log/opencode.log | grep unrestricted-boost
+opencode debug agents | grep -A2 unrestricted
+# 日志里应有 loading plugin …/plugins/unrestricted-boost.ts，且没有 failed to load plugin
 ```
 
-重启后按 Tab 键应能在主 agent 之间切到 `unrestricted` 开始使用。
+## 安装 · OpenCode V1（`opencode --version` < 2）
 
-## 配置规则
+### 1. 复制 V1 组件（只拷 `v1/` 下的单数目录）
 
-这套配置依赖 OpenCode V2 的目录自动发现机制：
+```bash
+cp -R v1/agent v1/command v1/plugin ~/.config/opencode/
+```
 
-1. **agent 目录**：markdown 文件放在 `~/.config/opencode/agents/`，文件名即 agent 名。`agents/unrestricted.md` 生成名为 `unrestricted` 的 agent；frontmatter 的 `description` / `mode` / `color` / `permissions` 生效，Markdown 正文就是它的 system prompt。
-2. **command 目录**：markdown 放在 `~/.config/opencode/commands/`，文件名即命令名。`commands/unrestricted.md` 生成 `/unrestricted`；frontmatter 的 `agent: unrestricted` 指定执行者，正文里的 `$ARGUMENTS` 被命令参数替换。
-3. **plugin 目录**：全局插件从 `~/.config/opencode/plugins/` 自动发现（`.ts`/`.js` 文件与插件包目录），**不需要写进 `opencode.json` 的 `plugins` 数组**；`plugins` 数组是给 npm 包/外部路径用的。项目级用 `.opencode/plugins/`。
-4. **默认 agent**：`default_agent: "unrestricted"` 使 `unrestricted` 成为默认主 agent。agent 定义既可以写在 markdown frontmatter，也可以（冗余）写在 `opencode.json` 的 `agents` 字段，二者按顺序合并。
-5. **权限模型**：V2 用有序 `permissions` 数组，`action` 支持通配（`shell` / `edit` / `read` / `subagent` / `webfetch` / `skill` / `*` 等），**最后一条命中规则生效**。全 allow 即 `action: "*"` + `effect: allow`；想收窄就先放宽规则、再用后面的例外覆盖。
-6. **项目级隔离**：同样的目录结构放到项目根的 `.opencode/` 下即可按项目启用，不影响全局配置。
+不要用 `cp -R v1 ~/.config/opencode/`（会多一层 `v1/` 前缀，发现不到）。
+也不要拷仓库根的 `agents/` / `commands/` / `plugins/`（那是 V2 专用）。
 
-## 插件行为
+若配置目录里已有 V2 复数目录，建议先清掉以免混用：
 
-`plugins/unrestricted-boost.ts` 只注册两个 hook：
+```bash
+rm -rf ~/.config/opencode/agents ~/.config/opencode/commands ~/.config/opencode/plugins
+```
 
-- `ctx.session.hook("context", …)` —— agent 主循环（含工具续跑）的模型请求；
-- `ctx.session.hook("compaction", …)` —— 上下文压缩摘要，避免压缩后的摘要丢掉研究语境。
+### 2. 写入 V1 配置
 
-每个 hook 里做两件事，且都用 `event.agent === "unrestricted"` 门控，其他 agent 一律不动：
+参考 `v1/opencode.json.example`：
 
-1. **注入语境**：system 里没有 `[UNRESEARCH-LAB]` 时 `unshift` 一段 BOOST，已有则跳过（幂等，不会随多轮请求堆叠）。
-2. **改写用户轮次**：只处理 `role === "user"` 的文本 part，命中安全意图词表时在正文前追加「授权研究环境」上下文；非文本 part（图片等）不动。
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "unrestricted",
+  "permission": "allow",
+  "agent": {
+    "unrestricted": {
+      "mode": "primary",
+      "color": "#EF4444",
+      "permission": "allow",
+      "description": "默认主 agent。安全实验室：逆向/补丁/渗透/取证。工具优先。"
+    }
+  }
+}
+```
 
-词表分三组：高置信度中文/英文短语、技术名与工具名、注册自动化上下文；泛词（注册/分析/测试）单独出现不触发，避免误伤正常开发请求。
+### 3. 插件依赖（可选）
+
+V1 插件用的是 `import type { Plugin } from "@opencode-ai/plugin"`，**类型导入，运行时擦除**，一般不需要 `npm install` 也能加载。只有本地编辑/类型检查时才需要：
+
+```bash
+cd ~/.config/opencode && bun add -d @opencode-ai/plugin
+```
+
+### 4. 重启并验证
+
+重启 opencode，按 Tab 应能切到 `unrestricted`；确认插件已加载且没有 `failed to load plugin`。
+
+## 插件行为（两版等价）
+
+两版插件做同一件事，只是挂接的 API 不同：
+
+1. **注入语境**：system 里没有 `[UNRESEARCH-LAB]` 时 `unshift` 一段 BOOST，已有则跳过（幂等）。
+2. **改写用户轮次**：只处理 user 文本，命中安全意图词表时在正文前追加「授权研究环境」上下文；非文本不动。
+3. **agent 门控**：只对 `unrestricted` 生效；build / plan / 其他 agent 一律不动。
+
+词表分三组：高置信度中文/英文短语、技术名与工具名、注册自动化上下文；泛词（注册/分析/测试）单独出现不触发。
 
 跑测试与类型检查：
 
 ```bash
-bun test                    # 或：bun test tests/unrestricted-boost.test.ts
+bun test                    # V1 + V2 插件测试
 bun run typecheck           # tsc --noEmit（tsconfig.json，含 skipLibCheck）
 ```
 
@@ -158,7 +199,8 @@ bun run typecheck           # tsc --noEmit（tsconfig.json，含 skipLibCheck）
 
 - **先用容易越狱的模型起手，再切换到想用的模型**：不同模型的安全对齐强度差异很大，有些模型冷启动很难破甲，一开口就拒答。对这类任务，先用一个容易越狱的模型起手——把「研究语境」建立起来、让受限内容开始产出、在对话历史里积累几轮已放行的上下文——然后用 `/models` 切换到真正想用的模型。越狱话术和任务上下文已经存在于对话历史里，目标模型更倾向于顺着继续执行，而不是从零重新判定拒答。
 - **切换后目标模型回缩的应对**：如果切过去后目标模型开始拒答、要求澄清或改写为安全话术，再切回起手模型让它补一句「继续」或重发上一条请求，把上下文再往前推一段。
-- **插件只影响 unrestricted**：`context` hook 用 `event.agent` 门控，build / plan / 子 agent 的请求不会被注入或改写；想让别的 agent 也用，把 `AGENT_ID` 改成白名单判断即可。
+- **插件只影响 unrestricted**：build / plan / 子 agent 的请求不会被注入或改写。
+- **不要把 V1 / V2 组件混装进同一配置目录**：OpenCode 会同时扫描单数与复数目录；混装可能导致旧实现抢先加载。按上面的清理步骤二选一。
 
 ## 搭配 Ferry 跨 Agent 续聊
 
@@ -177,9 +219,8 @@ Ferry 把 Claude Code、Codex、OpenCode、Cursor 等 agent 的会话汇进同�
 ## 致谢
 
 - 提示词参考并延展自 [MDX-Tom/gpt-5.6-instruct](https://github.com/MDX-Tom/gpt-5.6-instruct)（针对 gpt-5.6 系列的 Codex 破甲提示词与测试包，其自身参考自 [yynxxxxx/Codex-5.5-codex-instruct-5.5](https://github.com/yynxxxxx/Codex-5.5-codex-instruct-5.5)）。两者共享「研究/沙箱语境先行 + 显式抑制拒答 + 工具优先 + 按请求保真度交付」的核心机制，本仓库将其迁移到 OpenCode 平台并收窄为安全研究向。
-- V2 迁移依据 OpenCode V2 文档：`/docs/migrate-v1`、`/docs/build/plugins`、`/docs/build/plugins/migrate-v1`、`/docs/agents`；
-  并对照 `@opencode/plugin` 运行时类型（`SessionContext` / `SessionCompaction` / `Message` / `SystemPart`）校验。
-- V2 迁移基于 [Binaryify 的 PR #5](https://github.com/kzheart/opencode-unrestricted/pull/5) 验证完善；API 用法已按官方 V2 文档与 `@opencode/plugin` 类型核对通过。
+- V2 实现基于 [Binaryify 的 PR #5](https://github.com/kzheart/opencode-unrestricted/pull/5) 验证完善，并对照 OpenCode V2 文档与 `@opencode/plugin` 类型。
+- V1 实现恢复自本仓库合入 V2 之前的 `main`（`agent/` / `command/` / `plugin/`）。
 - 感谢 [LINUX DO](https://linux.do) 社区
 
 ## License

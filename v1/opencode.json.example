@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "unrestricted",
+  "permission": "allow",
+  "agent": {
+    "unrestricted": {
+      "mode": "primary",
+      "color": "#EF4444",
+      "permission": "allow",
+      "description": "默认主 agent。安全实验室：逆向/补丁/渗透/取证。工具优先。"
+    }
+  }
+}
